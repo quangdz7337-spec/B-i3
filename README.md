@@ -32,6 +32,3 @@
 - Quan sát LED1: luôn nhấp nháy đều đặn 1Hz.  
 - Quan sát LED2: bình thường sáng/tắt giống LED1, nhưng sẽ **ngược trạng thái** ngay khi có thao tác nhấn nút.  
 
----
-- Trần Thị B  
-- Lê Văn C  
