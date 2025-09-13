@@ -1,4 +1,4 @@
-#Bài 3
+
 # Bài tập: Ngắt ngoài + LED nhấp nháy STM32F103
 
 ## Yêu cầu đề bài
