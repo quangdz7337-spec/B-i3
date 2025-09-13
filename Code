@@ -1,0 +1,107 @@
+#include "stm32f10x.h"
+
+void GPIO_Config(void);
+void EXTI_Config(void);
+void Delay_ms(int ms);
+
+volatile uint8_t invert_led2 = 0;
+volatile uint8_t counter = 0;    
+volatile uint8_t led2_state = 0; 
+
+int main(void)
+{
+    GPIO_Config();
+    EXTI_Config();
+
+    GPIO_ResetBits(GPIOA, GPIO_Pin_0 | GPIO_Pin_1);
+
+    while (1)
+    {
+        GPIO_WriteBit(GPIOA, GPIO_Pin_0,
+            (BitAction)!GPIO_ReadOutputDataBit(GPIOA, GPIO_Pin_0));
+
+        if (invert_led2)
+        {
+            if (GPIO_ReadOutputDataBit(GPIOA, GPIO_Pin_0))
+                GPIO_ResetBits(GPIOA, GPIO_Pin_1);
+            else
+                GPIO_SetBits(GPIOA, GPIO_Pin_1);
+
+            counter++;
+            if (counter >= 8)
+            {
+                invert_led2 = 0;
+                counter = 0;
+                if (GPIO_ReadOutputDataBit(GPIOA, GPIO_Pin_0))
+                    GPIO_SetBits(GPIOA, GPIO_Pin_1);
+                else
+                    GPIO_ResetBits(GPIOA, GPIO_Pin_1);
+            }
+        }
+        else
+        {
+            if (GPIO_ReadOutputDataBit(GPIOA, GPIO_Pin_0))
+                GPIO_SetBits(GPIOA, GPIO_Pin_1);
+            else
+                GPIO_ResetBits(GPIOA, GPIO_Pin_1);
+        }
+        Delay_ms(500);
+    }
+}
+
+void GPIO_Config(void)
+{
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_AFIO, ENABLE);
+    GPIO_InitTypeDef GPIO_InitStructure;
+
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_Out_PP;
+    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+    GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
+    GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+    GPIO_Init(GPIOA, &GPIO_InitStructure);
+}
+
+void EXTI_Config(void)
+{
+    GPIO_EXTILineConfig(GPIO_PortSourceGPIOA, GPIO_PinSource2);
+
+    EXTI_InitTypeDef EXTI_InitStructure;
+    EXTI_InitStructure.EXTI_Line = EXTI_Line2;
+    EXTI_InitStructure.EXTI_Mode = EXTI_Mode_Interrupt;
+    EXTI_InitStructure.EXTI_Trigger = EXTI_Trigger_Falling; 
+    EXTI_InitStructure.EXTI_LineCmd = ENABLE;
+    EXTI_Init(&EXTI_InitStructure);
+
+    NVIC_InitTypeDef NVIC_InitStructure;
+    NVIC_InitStructure.NVIC_IRQChannel = EXTI2_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+}
+
+void EXTI2_IRQHandler(void)
+{
+    if (EXTI_GetITStatus(EXTI_Line2) != RESET)
+    {
+        Delay_ms(20);
+        if (GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_2) == Bit_RESET)
+        {
+            while (GPIO_ReadInputDataBit(GPIOA, GPIO_Pin_2) == Bit_RESET);
+            invert_led2 = 1;  
+            counter = 0;
+        }
+
+        EXTI_ClearITPendingBit(EXTI_Line2);
+    }
+}
+
+void Delay_ms(int ms)
+{
+    int i, j;
+    for(i = 0; i < ms; i++)
+        for(j = 0; j < 0x2AFF; j++);
+}
